@@ -9,30 +9,36 @@ public class EnrollCtrl {
 	public void enroll(Student s, List<CSE> courses) throws EnrollmentRulesViolationException {
         Map<Term, Map<Course, Double>> transcript = s.getTranscript();
 		for (CSE o : courses) {
-            for (Map.Entry<Term, Map<Course, Double>> tr : transcript.entrySet()) {
-                for (Map.Entry<Course, Double> r : tr.getValue().entrySet()) {
-                    if (r.getKey().equals(o.getCourse()) && r.getValue() >= 10)
-                        throw new EnrollmentRulesViolationException(String.format("The student has already passed %s", o.getCourse().getName()));
-                }
+            if (checkPassed(o.getCourse(), transcript)) {
+                throw new EnrollmentRulesViolationException(String.format("The student has already passed %s", o.getCourse().getName()));
             }
-			List<Course> prereqs = o.getCourse().getPrerequisites();
-			nextPre:
-			for (Course pre : prereqs) {
-                for (Map.Entry<Term, Map<Course, Double>> tr : transcript.entrySet()) {
-                    for (Map.Entry<Course, Double> r : tr.getValue().entrySet()) {
-                        if (r.getKey().equals(pre) && r.getValue() >= 10)
-                            continue nextPre;
-                    }
-				}
-				throw new EnrollmentRulesViolationException(String.format("The student has not passed %s as a prerequisite of %s", pre.getName(), o.getCourse().getName()));
-			}
+
             checkExamTimeCollision(courses, o);
             checkRepeatedRequest(courses, o);
+        }
+		for (CSE o : courses) {
+            List<Course> prereqs = o.getCourse().getPrerequisites();
+            for (Course pre : prereqs) {
+                if (!checkPassed(pre, transcript)) {
+                    throw new EnrollmentRulesViolationException(String.format("The student has not passed %s as a prerequisite of %s", pre.getName(), o.getCourse().getName()));
+                }
+            }
         }
         checkGPA(courses, transcript);
         for (CSE o : courses)
 			s.takeCourse(o.getCourse(), o.getSection());
 	}
+
+	private boolean checkPassed(Course course, Map<Term, Map<Course, Double>> transcript) {
+        for (Map.Entry<Term, Map<Course, Double>> tr : transcript.entrySet()) {
+            for (Map.Entry<Course, Double> r : tr.getValue().entrySet()) {
+                if (r.getKey().equals(course) && r.getValue() >= 10) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     private void checkRepeatedRequest(List<CSE> courses, CSE o) throws EnrollmentRulesViolationException {
         for (CSE o2 : courses) {
