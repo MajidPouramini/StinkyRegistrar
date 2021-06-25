@@ -26,19 +26,31 @@ public class EnrollCtrl {
 				}
 				throw new EnrollmentRulesViolationException(String.format("The student has not passed %s as a prerequisite of %s", pre.getName(), o.getCourse().getName()));
 			}
-            for (CSE o2 : courses) {
-                if (o == o2)
-                    continue;
-                if (o.getExamTime().equals(o2.getExamTime()))
-                    throw new EnrollmentRulesViolationException(String.format("Two offerings %s and %s have the same exam time", o, o2));
-                if (o.getCourse().equals(o2.getCourse()))
-                    throw new EnrollmentRulesViolationException(String.format("%s is requested to be taken twice", o.getCourse().getName()));
-            }
-		}
+            checkExamTimeCollision(courses, o);
+            checkRepeatedRequest(courses, o);
+        }
         checkGPA(courses, transcript);
         for (CSE o : courses)
 			s.takeCourse(o.getCourse(), o.getSection());
 	}
+
+    private void checkRepeatedRequest(List<CSE> courses, CSE o) throws EnrollmentRulesViolationException {
+        for (CSE o2 : courses) {
+            if (o == o2)
+                continue;
+            if (o.getCourse().equals(o2.getCourse()))
+                throw new EnrollmentRulesViolationException(String.format("%s is requested to be taken twice", o.getCourse().getName()));
+        }
+    }
+
+    private void checkExamTimeCollision(List<CSE> courses, CSE o) throws EnrollmentRulesViolationException {
+        for (CSE o2 : courses) {
+            if (o == o2)
+                continue;
+            if (o.getExamTime().equals(o2.getExamTime()))
+                throw new EnrollmentRulesViolationException(String.format("Two offerings %s and %s have the same exam time", o, o2));
+        }
+    }
 
     private void checkGPA(List<CSE> courses, Map<Term, Map<Course, Double>> transcript) throws EnrollmentRulesViolationException {
         int unitsRequested = 0;
